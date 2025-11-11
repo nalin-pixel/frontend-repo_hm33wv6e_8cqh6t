@@ -8,7 +8,7 @@ function Header({ onSearch }) {
   return (
     <header className="sticky top-0 z-20 backdrop-blur bg-white/70 border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-4">
-        <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">AniFlow</Link>
+        <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Anime streaming</Link>
         <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
@@ -47,6 +47,10 @@ function Home() {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    document.title = 'Anime streaming'
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
