@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, PlayCircle, ChevronRight, Clock } from 'lucide-react'
 import { BrowserRouter, Link, Routes, Route, useParams, useNavigate } from 'react-router-dom'
 
 // Prefer env var, otherwise fall back to the live backend URL
 const FALLBACK_BACKEND = 'https://ta-01k9sjkxjjv0fg9756czxt0y8m-8000.wo-qqejcp0oeh30xrgsmvc29vbbc.w.modal.host'
 const API_BASE = import.meta.env.VITE_BACKEND_URL || FALLBACK_BACKEND || 'http://localhost:8000'
+const HIANIME_URL = 'https://hianime.cv'
 
 function Header({ onSearch }) {
   return (
@@ -19,6 +20,7 @@ function Header({ onSearch }) {
             className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+        <a href={HIANIME_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:border-indigo-300 hover:text-indigo-700 transition">HiAnime</a>
         <a href="/test" className="text-sm text-gray-600 hover:text-gray-900">Status</a>
       </div>
     </header>
@@ -218,7 +220,17 @@ function Player() {
           </div>
           {anime && (
             <div className="mt-4">
-              <h1 className="text-2xl font-bold">{anime.title}</h1>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold">{anime.title}</h1>
+                <div className="flex items-center gap-2">
+                  {anime?.external_url && (
+                    <a href={anime.external_url} target="_blank" rel="noreferrer" className="text-sm px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">Open on HiAnime</a>
+                  )}
+                  {current?.external_url && (
+                    <a href={current.external_url} target="_blank" rel="noreferrer" className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:border-indigo-300">Episode on HiAnime</a>
+                  )}
+                </div>
+              </div>
               {current?.title && (
                 <p className="text-gray-700 mt-1 flex items-center gap-2">
                   <PlayCircle className="h-4 w-4 text-indigo-600" />
