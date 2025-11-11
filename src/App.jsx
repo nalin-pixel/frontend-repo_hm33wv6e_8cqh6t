@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, PlayCircle, ChevronRight } from 'lucide-react'
-import { BrowserRouter, Link, Routes, Route, useNavigate, useParams } from 'react-router-dom'
+import { Search, PlayCircle, ChevronRight, Clock } from 'lucide-react'
+import { BrowserRouter, Link, Routes, Route, useParams } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -89,16 +89,26 @@ function Home() {
   )
 }
 
+function formatMinutes(mins) {
+  if (!mins && mins !== 0) return null
+  return `${mins} min`
+}
+
 function EpisodeRow({ ep, isActive }) {
   return (
     <Link to={`?ep=${ep.number}`} className={`group flex items-center justify-between p-3 rounded-lg border ${isActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'}`}>
       <div className="flex items-center gap-3">
-        <div className="w-16 h-10 bg-gray-200 rounded overflow-hidden">
+        <div className="relative w-16 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0">
           {ep.thumbnail_url && <img src={ep.thumbnail_url} alt={ep.title} className="w-full h-full object-cover" />}
+          {ep.duration != null && (
+            <span className={`absolute bottom-0 right-0 m-0.5 text-[10px] leading-none px-1.5 py-0.5 rounded ${isActive ? 'bg-indigo-600 text-white' : 'bg-black/70 text-white'}`}>
+              {formatMinutes(ep.duration)}
+            </span>
+          )}
         </div>
-        <div>
-          <p className="font-medium">Episode {ep.number}</p>
-          <p className="text-xs text-gray-500 line-clamp-1">{ep.title}</p>
+        <div className="min-w-0">
+          <p className="font-medium truncate">Episode {ep.number}</p>
+          <p className="text-xs text-gray-500 truncate">{ep.title}</p>
         </div>
       </div>
       <PlayCircle className={`h-5 w-5 ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
@@ -112,7 +122,6 @@ function Player() {
   const [episodes, setEpisodes] = useState([])
   const [current, setCurrent] = useState(null)
 
-  // Read ep from query
   const epParam = new URLSearchParams(window.location.search).get('ep')
 
   useEffect(() => {
@@ -128,6 +137,7 @@ function Player() {
         setEpisodes(eps)
         const initial = eps.find(x => String(x.number) === String(epParam)) || eps[0]
         setCurrent(initial || null)
+        if (a?.title) document.title = `${a.title} • Anime streaming`
       } catch (e) {
         setAnime(null)
         setEpisodes([])
@@ -157,6 +167,18 @@ function Player() {
           {anime && (
             <div className="mt-4">
               <h1 className="text-2xl font-bold">{anime.title}</h1>
+              {current?.title && (
+                <p className="text-gray-700 mt-1 flex items-center gap-2">
+                  <PlayCircle className="h-4 w-4 text-indigo-600" />
+                  <span className="font-medium">Episode {current.number}:</span>
+                  <span className="truncate">{current.title}</span>
+                  {current.duration != null && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-gray-500 text-sm">
+                      <Clock className="h-4 w-4" /> {formatMinutes(current.duration)}
+                    </span>
+                  )}
+                </p>
+              )}
               {anime.description && <p className="text-gray-600 mt-2">{anime.description}</p>}
               {anime.tags?.length ? (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -169,7 +191,11 @@ function Player() {
           )}
         </div>
         <aside>
-          <h3 className="font-semibold mb-3 flex items-center gap-2">Episodes <ChevronRight className="h-4 w-4" /></h3>
+          <h3 className="font-semibold mb-3 flex items-center gap-2">Episodes <ChevronRight className="h-4 w-4" />
+            {episodes?.length ? (
+              <span className="text-xs font-normal text-gray-500">({episodes.length})</span>
+            ) : null}
+          </h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
             {episodes.map(ep => (
               <EpisodeRow key={ep.id} ep={ep} isActive={current && ep.number === current.number} />
