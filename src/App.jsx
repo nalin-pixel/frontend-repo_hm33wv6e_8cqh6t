@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Search, PlayCircle, ChevronRight, Clock } from 'lucide-react'
 import { BrowserRouter, Link, Routes, Route, useParams, useNavigate } from 'react-router-dom'
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+// Prefer env var, otherwise fall back to the live backend URL
+const FALLBACK_BACKEND = 'https://ta-01k9sjkxjjv0fg9756czxt0y8m-8000.wo-qqejcp0oeh30xrgsmvc29vbbc.w.modal.host'
+const API_BASE = import.meta.env.VITE_BACKEND_URL || FALLBACK_BACKEND || 'http://localhost:8000'
 
 function Header({ onSearch }) {
   return (
@@ -43,10 +45,20 @@ function AnimeCard({ anime }) {
   )
 }
 
+function EmptyState({ title = 'Nothing to show', subtitle = 'Try adjusting your search.' }) {
+  return (
+    <div className="w-full py-16 text-center border border-dashed border-gray-200 rounded-xl">
+      <p className="text-lg font-medium text-gray-700">{title}</p>
+      <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+    </div>
+  )
+}
+
 function Home() {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     document.title = 'Anime streaming'
@@ -57,11 +69,14 @@ function Home() {
     const load = async () => {
       try {
         setLoading(true)
+        setError(null)
         const res = await fetch(`${API_BASE}/api/anime${query ? `?q=${encodeURIComponent(query)}` : ''}`, { signal: controller.signal })
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`)
         const data = await res.json()
         setItems(data)
       } catch (e) {
         setItems([])
+        setError('Could not load content. Please try again shortly.')
       } finally {
         setLoading(false)
       }
@@ -77,6 +92,10 @@ function Home() {
         <h2 className="text-xl font-semibold mb-4">Trending</h2>
         {loading ? (
           <p className="text-gray-500">Loading...</p>
+        ) : error ? (
+          <EmptyState title="Unable to load anime" subtitle={error} />
+        ) : items.length === 0 ? (
+          <EmptyState title="No anime found" subtitle={query ? 'Try a different search keyword.' : 'Content will appear here once available.'} />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {items.map(a => (
@@ -131,16 +150,19 @@ function Player() {
   const [anime, setAnime] = useState(null)
   const [episodes, setEpisodes] = useState([])
   const [current, setCurrent] = useState(null)
+  const [error, setError] = useState(null)
 
   const epParam = new URLSearchParams(window.location.search).get('ep')
 
   useEffect(() => {
     const load = async () => {
       try {
+        setError(null)
         const [aRes, eRes] = await Promise.all([
           fetch(`${API_BASE}/api/anime/${animeId}`),
           fetch(`${API_BASE}/api/anime/${animeId}/episodes`)
         ])
+        if (!aRes.ok || !eRes.ok) throw new Error('Failed to load')
         const a = await aRes.json()
         const eps = await eRes.json()
         setAnime(a)
@@ -151,6 +173,7 @@ function Player() {
       } catch (e) {
         setAnime(null)
         setEpisodes([])
+        setError('Could not load this anime.')
       }
     }
     load()
@@ -162,7 +185,6 @@ function Player() {
     setCurrent(chosen)
   }, [epParam, episodes])
 
-  // Scroll active episode into view when current changes
   useEffect(() => {
     if (!current) return
     const el = document.getElementById(`ep-${current.number}`)
@@ -188,6 +210,8 @@ function Player() {
           <div className="aspect-video bg-black rounded-xl overflow-hidden">
             {current ? (
               <video src={current.stream_url} className="w-full h-full" controls autoPlay poster={current.thumbnail_url} onEnded={handleEnded} />
+            ) : error ? (
+              <div className="w-full h-full grid place-items-center text-white/70">{error}</div>
             ) : (
               <div className="w-full h-full grid place-items-center text-white/70">No episode selected</div>
             )}
@@ -225,6 +249,9 @@ function Player() {
             ) : null}
           </h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
+            {episodes.length === 0 && !error && (
+              <div className="text-sm text-gray-500">No episodes yet.</div>
+            )}
             {episodes.map(ep => (
               <EpisodeRow key={ep.id} ep={ep} isActive={current && ep.number === current.number} />
             ))}
