@@ -89,9 +89,15 @@ function Home() {
   )
 }
 
-function formatMinutes(mins) {
-  if (!mins && mins !== 0) return null
-  return `${mins} min`
+function formatDurationFromMinutes(mins) {
+  if (mins == null) return null
+  const totalSeconds = Math.round(mins * 60)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(seconds).padStart(2, '0')
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`
 }
 
 function EpisodeRow({ ep, isActive }) {
@@ -102,7 +108,7 @@ function EpisodeRow({ ep, isActive }) {
           {ep.thumbnail_url && <img src={ep.thumbnail_url} alt={ep.title} className="w-full h-full object-cover" />}
           {ep.duration != null && (
             <span className={`absolute bottom-0 right-0 m-0.5 text-[10px] leading-none px-1.5 py-0.5 rounded ${isActive ? 'bg-indigo-600 text-white' : 'bg-black/70 text-white'}`}>
-              {formatMinutes(ep.duration)}
+              {formatDurationFromMinutes(ep.duration)}
             </span>
           )}
         </div>
@@ -174,7 +180,7 @@ function Player() {
                   <span className="truncate">{current.title}</span>
                   {current.duration != null && (
                     <span className="ml-2 inline-flex items-center gap-1 text-gray-500 text-sm">
-                      <Clock className="h-4 w-4" /> {formatMinutes(current.duration)}
+                      <Clock className="h-4 w-4" /> {formatDurationFromMinutes(current.duration)}
                     </span>
                   )}
                 </p>
