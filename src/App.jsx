@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search, PlayCircle, ChevronRight, Clock } from 'lucide-react'
-import { BrowserRouter, Link, Routes, Route, useParams } from 'react-router-dom'
+import { BrowserRouter, Link, Routes, Route, useParams, useNavigate } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -102,9 +102,9 @@ function formatDurationFromMinutes(mins) {
 
 function EpisodeRow({ ep, isActive }) {
   return (
-    <Link to={`?ep=${ep.number}`} className={`group flex items-center justify-between p-3 rounded-lg border ${isActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+    <Link id={`ep-${ep.number}`} to={`?ep=${ep.number}`} className={`group flex items-center justify-between p-3 rounded-lg border transition ring-offset-1 ${isActive ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' : 'border-gray-200 hover:bg-gray-50'}`}>
       <div className="flex items-center gap-3">
-        <div className="relative w-16 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+        <div className="relative w-20 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
           {ep.thumbnail_url && <img src={ep.thumbnail_url} alt={ep.title} className="w-full h-full object-cover" />}
           {ep.duration != null && (
             <span className={`absolute bottom-0 right-0 m-0.5 text-[10px] leading-none px-1.5 py-0.5 rounded ${isActive ? 'bg-indigo-600 text-white' : 'bg-black/70 text-white'}`}>
@@ -113,7 +113,10 @@ function EpisodeRow({ ep, isActive }) {
           )}
         </div>
         <div className="min-w-0">
-          <p className="font-medium truncate">Episode {ep.number}</p>
+          <p className="font-medium truncate flex items-center gap-2">
+            <span className={`inline-block h-2 w-2 rounded-full ${isActive ? 'bg-indigo-600' : 'bg-gray-300'}`} />
+            Episode {ep.number}
+          </p>
           <p className="text-xs text-gray-500 truncate">{ep.title}</p>
         </div>
       </div>
@@ -124,6 +127,7 @@ function EpisodeRow({ ep, isActive }) {
 
 function Player() {
   const { animeId } = useParams()
+  const navigate = useNavigate()
   const [anime, setAnime] = useState(null)
   const [episodes, setEpisodes] = useState([])
   const [current, setCurrent] = useState(null)
@@ -158,6 +162,24 @@ function Player() {
     setCurrent(chosen)
   }, [epParam, episodes])
 
+  // Scroll active episode into view when current changes
+  useEffect(() => {
+    if (!current) return
+    const el = document.getElementById(`ep-${current.number}`)
+    if (el) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [current])
+
+  const handleEnded = () => {
+    if (!current || !episodes?.length) return
+    const idx = episodes.findIndex(e => e.number === current.number)
+    const next = episodes[idx + 1]
+    if (next) {
+      navigate(`?ep=${next.number}`, { replace: false })
+    }
+  }
+
   return (
     <div>
       <Header onSearch={() => {}} />
@@ -165,7 +187,7 @@ function Player() {
         <div className="md:col-span-2">
           <div className="aspect-video bg-black rounded-xl overflow-hidden">
             {current ? (
-              <video src={current.stream_url} className="w-full h-full" controls autoPlay poster={current.thumbnail_url} />
+              <video src={current.stream_url} className="w-full h-full" controls autoPlay poster={current.thumbnail_url} onEnded={handleEnded} />
             ) : (
               <div className="w-full h-full grid place-items-center text-white/70">No episode selected</div>
             )}
@@ -197,7 +219,7 @@ function Player() {
           )}
         </div>
         <aside>
-          <h3 className="font-semibold mb-3 flex items-center gap-2">Episodes <ChevronRight className="h-4 w-4" />
+          <h3 className="font-semibold mb-3 flex items-center gap-2 sticky top-20 bg-white/70 backdrop-blur z-10 py-1">Episodes <ChevronRight className="h-4 w-4" />
             {episodes?.length ? (
               <span className="text-xs font-normal text-gray-500">({episodes.length})</span>
             ) : null}
